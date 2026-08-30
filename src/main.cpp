@@ -4,6 +4,7 @@ struct Cpu {
     uint16_t SP;
     uint16_t PC;
     uint8_t A, B, C, D, E, H, L;
+    bool zero, sub, halfcarry, carry; //flags
 
     uint16_t get_word_reg(uint8_t &hi, uint8_t &lo) {
         uint16_t wordreg = hi;
@@ -15,6 +16,18 @@ struct Cpu {
         lo = (0xFF00 & val) >> 8;
         hi = 0x00FF & val;
         return;   
+    }
+
+    uint8_t getF() {
+        uint8_t flags = 0x00;
+        flags = (zero << 7) | (sub << 6) | (halfcarry << 5) | (carry << 4);
+        return flags;
+    }
+
+    uint16_t getAF() {
+        uint16_t af = A;
+        af = (A << 8) | getF();
+        return af;
     }
 
     void setBC(uint16_t val) {
@@ -47,8 +60,11 @@ int main() {
     myCpu.SP = 0x4040;
     myCpu.PC = 0xABAB;
 
-    uint16_t value = 0xAABB;
-    myCpu.setBC(value);
-    uint16_t bcval = myCpu.getBC();
+    myCpu.A = 0xAb;
+    myCpu.zero = 1;
+    myCpu.sub = 0;
+    myCpu.halfcarry = 1;
+    myCpu.carry = 0;
+    uint16_t af = myCpu.getAF();
     return 0;
 }
