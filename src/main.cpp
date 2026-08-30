@@ -1,4 +1,6 @@
+#include <cassert>
 #include <iostream>
+#include <pthread.h>
 
 struct Cpu {
     uint16_t SP;
@@ -13,8 +15,8 @@ struct Cpu {
     }
 
     void set_word_reg(uint16_t val, uint8_t &hi, uint8_t &lo) {
-        lo = (0xFF00 & val) >> 8;
-        hi = 0x00FF & val;
+        hi = (0xFF00 & val) >> 8;
+        lo = 0x00FF & val;
         return;   
     }
 
@@ -55,16 +57,30 @@ struct Cpu {
     }
 };
 
-int main() {
-    Cpu myCpu;
-    myCpu.SP = 0x4040;
-    myCpu.PC = 0xABAB;
 
-    myCpu.A = 0xAb;
-    myCpu.zero = 1;
-    myCpu.sub = 0;
-    myCpu.halfcarry = 1;
-    myCpu.carry = 0;
-    uint16_t af = myCpu.getAF();
+void test_bc_reg() {
+    Cpu testCPU;
+    testCPU.B = 0x00;
+    testCPU.C = 0x00;
+    testCPU.setBC(0xaabb);
+    assert(testCPU.B == 0xaa);
+    assert(testCPU.C == 0xbb);
+    return;
+}
+
+void test_de_reg() {
+    Cpu testCPU;
+    testCPU.D = 0x00;
+    testCPU.E = 0x00;
+    testCPU.setDE(0xccdd);
+    assert(testCPU.D == 0xcc);
+    assert(testCPU.E == 0xdd);
+    return;
+}
+
+
+int main() {
+    test_bc_reg();
+    test_de_reg();
     return 0;
 }
