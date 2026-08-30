@@ -14,13 +14,18 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+add_library(gbpp_core src/cpu.cpp)
+target_include_directories(gbpp_core PUBLIC include)
+
 add_executable(gbpp src/main.cpp)
+target_link_libraries(gbpp PRIVATE gbpp_core)
 
 enable_testing()
-
 add_executable(unit_tests tests/test_main.cpp)
 
-target_link_libraries(unit_tests PRIVATE GTest::gtest_main)
+target_link_libraries(unit_tests PRIVATE 
+  gbpp_core
+  GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(unit_tests)
