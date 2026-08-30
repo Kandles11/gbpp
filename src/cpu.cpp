@@ -2,13 +2,13 @@
 #include <iostream>
 
 
-uint16_t CPU::get_word_reg(uint8_t &hi, uint8_t &lo) {
+uint16_t CPU::get_word_reg(const uint8_t &hi, const uint8_t &lo) {
     uint16_t wordreg = hi;
     wordreg = (hi << 8) | lo;
     return wordreg;
 }
 
-void CPU::set_word_reg(uint16_t val, uint8_t &hi, uint8_t &lo) {
+void CPU::set_word_reg(const uint16_t val, uint8_t &hi, uint8_t &lo) {
     hi = (0xFF00 & val) >> 8;
     lo = 0x00FF & val;
     return;   
