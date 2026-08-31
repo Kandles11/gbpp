@@ -172,6 +172,7 @@ void CPU::execute(int ticks, Memory &mem) {
             //ld [imm16], sp
             uint16_t address = fetchWord(mem);
             mem.data[address] = SP;
+            ticks -= 20;
         }
         else if ((instruction & 0xC7) == 0x06)
         {
