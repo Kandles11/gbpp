@@ -82,21 +82,59 @@ uint8_t* CPU::decodeToRegister(uint8_t code) {
     return nullptr;
 }
 
+void CPU::setWordRegFromCode(uint8_t code, uint16_t val) {
+    switch(code) { 
+        case 0:
+            setBC(val);
+            break;
+        case 1:
+            setDE(val);
+            break;
+        case 2: 
+            setHL(val);
+            break;
+        case 3:
+            SP = val;
+            break;
+        default:
+            break; 
+    }
+}
+
 uint8_t CPU::fetchByte(Memory &mem) {
     uint8_t data = mem.data[PC];
     PC++;
     return data;
 }
 
-void CPU::execute(int cycles, Memory &mem) {
-    uint8_t instruction = fetchByte(mem);
-    if ((instruction & 0xC7) == 0x06)
-    {
-        //ld r8, imm8
-        int code = (instruction >> 3) & 0x07;
-        uint8_t* dest = decodeToRegister(code);
-        uint8_t val = fetchByte(mem);
-        *dest = val;
+uint16_t CPU::fetchWord(Memory &mem) {
+    uint8_t lo = mem.data[PC];
+    PC++;
+    uint8_t hi = mem.data[PC];
+    PC++;
+    uint16_t data = (hi << 8) | lo;
+    return data;
+}
+
+void CPU::execute(int ticks, Memory &mem) {
+    while (ticks > 0){
+        uint8_t instruction = fetchByte(mem);
+        if ((instruction & 0xC7) == 0x06)
+        {
+            //ld r8, imm8
+            int code = (instruction >> 3) & 0x07;
+            uint8_t* dest = decodeToRegister(code);
+            uint8_t val = fetchByte(mem);
+            *dest = val;
+            ticks -= 4;
+        }
+        else if ((instruction & 0xCF) == 0x01) {
+            //ld r16, imm16	
+            int code = (instruction >> 4) & 0x03;
+            uint16_t val = fetchWord(mem);
+            setWordRegFromCode(code, val);
+            ticks -= 12;
+        }
     }
-    return; 
+    return;
 }

@@ -19,9 +19,12 @@ struct CPU {
     uint16_t getDE();
     uint16_t getHL();
 
+    void setWordRegFromCode(uint8_t code, uint16_t val);
+
     uint8_t* decodeToRegister(uint8_t code);
 
     uint8_t fetchByte(Memory &mem);
+    uint16_t fetchWord(Memory &mem);
 
     void execute(int cycles, Memory &mem);
 };
