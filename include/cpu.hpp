@@ -20,6 +20,7 @@ struct CPU {
     uint16_t getHL();
 
     void setWordRegFromCode(uint8_t code, uint16_t val);
+    uint16_t getWordRegFromCode(uint8_t code);
 
     uint8_t* decodeToRegister(uint8_t code);
 

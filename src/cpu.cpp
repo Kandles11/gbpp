@@ -1,4 +1,6 @@
 #include "cpu.hpp"
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 
 
@@ -101,6 +103,28 @@ void CPU::setWordRegFromCode(uint8_t code, uint16_t val) {
     }
 }
 
+uint16_t CPU::getWordRegFromCode(uint8_t code) {
+    uint16_t val;
+    switch(code) { 
+        case 0:
+            val = getBC();
+            break;
+        case 1:
+            val = getDE();
+            break;
+        case 2: 
+            val = getHL();
+            break;
+        case 3:
+            val = SP;
+            break;
+        default:
+            val = NULL;
+            break; 
+    }
+    return val;
+}
+
 uint8_t CPU::fetchByte(Memory &mem) {
     uint8_t data = mem.data[PC];
     PC++;
@@ -119,13 +143,8 @@ uint16_t CPU::fetchWord(Memory &mem) {
 void CPU::execute(int ticks, Memory &mem) {
     while (ticks > 0){
         uint8_t instruction = fetchByte(mem);
-        if ((instruction & 0xC7) == 0x06)
-        {
-            //ld r8, imm8
-            int code = (instruction >> 3) & 0x07;
-            uint8_t* dest = decodeToRegister(code);
-            uint8_t val = fetchByte(mem);
-            *dest = val;
+        if (instruction == 0x00){
+            //nop
             ticks -= 4;
         }
         else if ((instruction & 0xCF) == 0x01) {
@@ -134,6 +153,34 @@ void CPU::execute(int ticks, Memory &mem) {
             uint16_t val = fetchWord(mem);
             setWordRegFromCode(code, val);
             ticks -= 12;
+        }
+        else if ((instruction & 0xCF) == 0x02) {
+            //ld [r16mem], a
+            int code = (instruction >> 4) & 0x03;
+            uint16_t address = getWordRegFromCode(code);
+            mem.data[address] = A;
+            ticks -= 8;
+        }
+        else if ((instruction & 0xCF) == 0x0A) {
+            // ld a, [r16mem]
+            int code = (instruction >> 4) & 0x03;
+            uint16_t address = getWordRegFromCode(code);
+            A = mem.data[address];
+            ticks -= 8;
+        }
+        else if (instruction == 0x08) {
+            //ld [imm16], sp
+            uint16_t address = fetchWord(mem);
+            mem.data[address] = SP;
+        }
+        else if ((instruction & 0xC7) == 0x06)
+        {
+            //ld r8, imm8
+            int code = (instruction >> 3) & 0x07;
+            uint8_t* dest = decodeToRegister(code);
+            uint8_t val = fetchByte(mem);
+            *dest = val;
+            ticks -= 4;
         }
     }
     return;
