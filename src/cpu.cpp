@@ -49,3 +49,54 @@ uint16_t CPU::getDE() {
 uint16_t CPU::getHL() {
     return get_word_reg(H, L);
 }
+
+uint8_t* CPU::decodeToRegister(uint8_t code) {
+    switch(code) {
+        case 0:
+            return &B;
+            break;
+        case 1:
+            return &C;
+            break;
+        case 2:
+            return &D;
+            break;
+        case 3:
+            return &E;
+            break;
+        case 4:
+            return &H;
+            break;
+        case 5:
+            return &L;
+            break;
+        case 6:
+            std::cout << "UNIMPLEMENTED TODAY" << std::endl;
+            break;
+        case 7:
+            return &A;
+            break;
+        default:
+            return nullptr;
+    }
+    return nullptr;
+}
+
+uint8_t CPU::fetchByte(Memory &mem) {
+    uint8_t data = mem.data[PC];
+    PC++;
+    return data;
+}
+
+void CPU::execute(int cycles, Memory &mem) {
+    uint8_t instruction = fetchByte(mem);
+    if ((instruction & 0xC7) == 0x06)
+    {
+        //ld r8, imm8
+        int code = (instruction >> 3) & 0x07;
+        uint8_t* dest = decodeToRegister(code);
+        uint8_t val = fetchByte(mem);
+        *dest = val;
+    }
+    return; 
+}

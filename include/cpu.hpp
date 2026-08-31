@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <memory.hpp>
 #include <iostream>
 
 struct CPU {
@@ -17,4 +18,10 @@ struct CPU {
     uint16_t getBC();
     uint16_t getDE();
     uint16_t getHL();
+
+    uint8_t* decodeToRegister(uint8_t code);
+
+    uint8_t fetchByte(Memory &mem);
+
+    void execute(int cycles, Memory &mem);
 };

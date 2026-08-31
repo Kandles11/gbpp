@@ -14,7 +14,7 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_library(gbpp_core src/cpu.cpp)
+add_library(gbpp_core src/cpu.cpp src/memory.cpp)
 target_include_directories(gbpp_core PUBLIC include)
 
 add_executable(gbpp src/main.cpp)
