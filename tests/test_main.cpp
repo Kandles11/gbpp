@@ -92,3 +92,57 @@ TEST(B0InstructionTest, DecR8) {
     EXPECT_EQ(cpu.B, 0x03);
 
 }
+
+TEST(B0InstructionTest, RLCA) {
+    CPU cpu;
+    Memory mem;
+    cpu.A = 0b10101010;
+    mem.data[0x0000] = 0b00000111;
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.A, 0b01010101);
+}
+
+TEST(B0InstructionTest, RLCA_2) {
+    CPU cpu;
+    Memory mem;
+    cpu.A = 0b00001111;
+    mem.data[0x0000] = 0b00000111;
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.A, 0b00011110);
+}
+
+TEST(B0InstructionTest, RLCA_3) {
+    CPU cpu;
+    Memory mem;
+    cpu.A = 0b11110000;
+    mem.data[0x0000] = 0b00000111;
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.A, 0b11100001);
+}
+
+TEST(B0InstructionTest, RRCA) {
+    CPU cpu;
+    Memory mem;
+    cpu.A = 0b10101010;
+    mem.data[0x0000] = 0b00001111;
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.A, 0b01010101);
+}
+
+TEST(B0InstructionTest, RRCA_2) {
+    CPU cpu;
+    Memory mem;
+    cpu.A = 0b00001111;
+    mem.data[0x0000] = 0b00001111;
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.A, 0b10000111);
+}
+
+TEST(B0InstructionTest, RRCA_3) {
+    CPU cpu;
+    Memory mem;
+    cpu.A = 0b11110000;
+    mem.data[0x0000] = 0b00001111;
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.A, 0b01111000);
+}
