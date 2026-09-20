@@ -204,6 +204,22 @@ void CPU::execute(int ticks, Memory &mem) {
             setHL(getHL() + val);
             ticks -= 8;
         }
+        else if ((instruction & 0xC7) == 0x04) {
+            // TODO HANDLE FLAGS HERE
+            //inc r8
+            int code = (instruction >> 3) & 0x07;
+            uint8_t* target = decodeToRegister(code);
+            *target = *target + 1;
+            ticks -= 4;
+        }
+        else if ((instruction & 0xC7) == 0x05) {
+            //inc r8
+            //TODO HANDLE FLAGS HERE
+            int code = (instruction >> 3) & 0x07;
+            uint8_t* target = decodeToRegister(code);
+            *target = *target - 1;
+            ticks -= 4;
+        }
         else if ((instruction & 0xC7) == 0x06)
         {
             //ld r8, imm8
