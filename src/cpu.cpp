@@ -84,25 +84,6 @@ uint8_t* CPU::decodeToRegister(uint8_t code) {
     return nullptr;
 }
 
-void CPU::setWordRegFromCode(uint8_t code, uint16_t val) {
-    switch(code) { 
-        case 0:
-            setBC(val);
-            break;
-        case 1:
-            setDE(val);
-            break;
-        case 2: 
-            setHL(val);
-            break;
-        case 3:
-            SP = val;
-            break;
-        default:
-            break; 
-    }
-}
-
 uint16_t CPU::getWordRegFromCode(uint8_t code) {
     uint16_t val;
     switch(code) { 
@@ -125,6 +106,26 @@ uint16_t CPU::getWordRegFromCode(uint8_t code) {
     return val;
 }
 
+void CPU::setWordRegFromCode(uint8_t code, uint16_t val) {
+        switch(code) { 
+        case 0:
+            setBC(val);
+            break;
+        case 1:
+            setDE(val);
+            break;
+        case 2: 
+            setHL(val);
+            break;
+        case 3:
+            SP = val;
+            break;
+        default:
+            std::cout << "Invalid register code given" << std::endl;
+            break; 
+    }
+}
+
 uint8_t CPU::fetchByte(Memory &mem) {
     uint8_t data = mem.data[PC];
     PC++;
@@ -145,6 +146,7 @@ void CPU::execute(int ticks, Memory &mem) {
         uint8_t instruction = fetchByte(mem);
         if (instruction == 0x00){
             //nop
+            PC++;
             ticks -= 4;
         }
         else if ((instruction & 0xCF) == 0x01) {
@@ -159,6 +161,7 @@ void CPU::execute(int ticks, Memory &mem) {
             int code = (instruction >> 4) & 0x03;
             uint16_t address = getWordRegFromCode(code);
             mem.data[address] = A;
+            PC++;
             ticks -= 8;
         }
         else if ((instruction & 0xCF) == 0x0A) {
@@ -166,6 +169,7 @@ void CPU::execute(int ticks, Memory &mem) {
             int code = (instruction >> 4) & 0x03;
             uint16_t address = getWordRegFromCode(code);
             A = mem.data[address];
+            PC++;
             ticks -= 8;
         }
         else if (instruction == 0x08) {
@@ -173,6 +177,14 @@ void CPU::execute(int ticks, Memory &mem) {
             uint16_t address = fetchWord(mem);
             mem.data[address] = SP;
             ticks -= 20;
+        }
+        else if ((instruction & 0xCF) == 0x03) {
+            //inc r16
+            int code = (instruction >> 4) & 0x03;
+            uint16_t val = getWordRegFromCode(code);
+            setWordRegFromCode(code, ++val);
+            PC++;
+            ticks -= 8;
         }
         else if ((instruction & 0xC7) == 0x06)
         {
