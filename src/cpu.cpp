@@ -232,25 +232,24 @@ void CPU::execute(int ticks, Memory &mem) {
         }
         else if (instruction == 0x07)
         {
-            //TODO FLAGS
             // rlca
             uint8_t val = A;
             uint8_t res = val << 1;
             uint8_t mask = (val >> 7);
             A = res | mask;
+            carry = val >> 7;
             ticks -= 4;
         }
         else if(instruction == 0x0F)
         {
-            //TODO FLAGS
             //rrca
             uint8_t val = A;
             uint8_t res = val >> 1;
             uint8_t mask = (val << 7);
             A = res | mask;
+            carry = val & 0b00000001;
             ticks -= 4;
         }
-
     }
     return;
 }

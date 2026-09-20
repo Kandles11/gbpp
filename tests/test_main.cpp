@@ -100,6 +100,7 @@ TEST(B0InstructionTest, RLCA) {
     mem.data[0x0000] = 0b00000111;
     cpu.execute(4, mem);
     EXPECT_EQ(cpu.A, 0b01010101);
+    EXPECT_EQ(cpu.carry, 1);
 }
 
 TEST(B0InstructionTest, RLCA_2) {
@@ -109,6 +110,7 @@ TEST(B0InstructionTest, RLCA_2) {
     mem.data[0x0000] = 0b00000111;
     cpu.execute(4, mem);
     EXPECT_EQ(cpu.A, 0b00011110);
+    EXPECT_EQ(cpu.carry, 0);
 }
 
 TEST(B0InstructionTest, RLCA_3) {
@@ -118,6 +120,8 @@ TEST(B0InstructionTest, RLCA_3) {
     mem.data[0x0000] = 0b00000111;
     cpu.execute(4, mem);
     EXPECT_EQ(cpu.A, 0b11100001);
+    EXPECT_EQ(cpu.carry, 1);
+
 }
 
 TEST(B0InstructionTest, RRCA) {
@@ -127,6 +131,8 @@ TEST(B0InstructionTest, RRCA) {
     mem.data[0x0000] = 0b00001111;
     cpu.execute(4, mem);
     EXPECT_EQ(cpu.A, 0b01010101);
+    EXPECT_EQ(cpu.carry, 0);
+
 }
 
 TEST(B0InstructionTest, RRCA_2) {
@@ -136,6 +142,7 @@ TEST(B0InstructionTest, RRCA_2) {
     mem.data[0x0000] = 0b00001111;
     cpu.execute(4, mem);
     EXPECT_EQ(cpu.A, 0b10000111);
+    EXPECT_EQ(cpu.carry, 1);
 }
 
 TEST(B0InstructionTest, RRCA_3) {
@@ -145,4 +152,5 @@ TEST(B0InstructionTest, RRCA_3) {
     mem.data[0x0000] = 0b00001111;
     cpu.execute(4, mem);
     EXPECT_EQ(cpu.A, 0b01111000);
+    EXPECT_EQ(cpu.carry, 0);
 }
