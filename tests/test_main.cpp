@@ -44,3 +44,12 @@ TEST(B0InstructionTest, LdR16memA) {
     mem.data[0x0000] = 0b00000010; // ld [BC], a 
     
 }
+
+TEST(B0InstructionTest, IncR16) {
+    CPU cpu;
+    Memory mem;
+    cpu.setBC(0xAFAF);
+    mem.data[0x0000] = 0b00000011; // inc BC
+    cpu.execute(8, mem);
+    EXPECT_EQ(cpu.getBC(), 0xAFAF+1);
+}

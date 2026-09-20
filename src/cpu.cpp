@@ -3,6 +3,12 @@
 #include <cstdint>
 #include <iostream>
 
+CPU::CPU() {
+    SP =PC = 0;
+    A = B = C = D = E = H = L = 0;
+    zero = sub = halfcarry = carry = 0;
+}
+
 
 uint16_t CPU::get_word_reg(const uint8_t &hi, const uint8_t &lo) {
     uint16_t wordreg = hi;
@@ -161,7 +167,6 @@ void CPU::execute(int ticks, Memory &mem) {
             int code = (instruction >> 4) & 0x03;
             uint16_t address = getWordRegFromCode(code);
             mem.data[address] = A;
-            PC++;
             ticks -= 8;
         }
         else if ((instruction & 0xCF) == 0x0A) {
@@ -169,7 +174,6 @@ void CPU::execute(int ticks, Memory &mem) {
             int code = (instruction >> 4) & 0x03;
             uint16_t address = getWordRegFromCode(code);
             A = mem.data[address];
-            PC++;
             ticks -= 8;
         }
         else if (instruction == 0x08) {
@@ -183,7 +187,6 @@ void CPU::execute(int ticks, Memory &mem) {
             int code = (instruction >> 4) & 0x03;
             uint16_t val = getWordRegFromCode(code);
             setWordRegFromCode(code, ++val);
-            PC++;
             ticks -= 8;
         }
         else if ((instruction & 0xC7) == 0x06)
