@@ -53,3 +53,12 @@ TEST(B0InstructionTest, IncR16) {
     cpu.execute(8, mem);
     EXPECT_EQ(cpu.getBC(), 0xAFAF+1);
 }
+
+TEST(B0InstructionTest, DecR16) {
+    CPU cpu;
+    Memory mem;
+    cpu.setBC(0xAFAF);
+    mem.data[0x0000] = 0b00001011; //dec BC
+    cpu.execute(8, mem);
+    EXPECT_EQ(cpu.getBC(), 0xAFAF-1);
+}
