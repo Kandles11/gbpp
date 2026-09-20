@@ -196,6 +196,14 @@ void CPU::execute(int ticks, Memory &mem) {
             setWordRegFromCode(code, --val);
             ticks -= 8; 
         }
+        else if ((instruction & 0xCF) == 0x09) {
+            // TODO HANDLE FLAGS HERE
+            //add hl, r16
+            int code = (instruction >> 4) & 0x03;
+            uint16_t val = getWordRegFromCode(code);
+            setHL(getHL() + val);
+            ticks -= 8;
+        }
         else if ((instruction & 0xC7) == 0x06)
         {
             //ld r8, imm8
