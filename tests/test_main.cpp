@@ -154,3 +154,57 @@ TEST(B0InstructionTest, RRCA_3) {
     EXPECT_EQ(cpu.A, 0b01111000);
     EXPECT_EQ(cpu.carry, 0);
 }
+
+TEST(B0InstructionTest, RLA) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b00010111;
+    
+    cpu.carry = 0;
+    cpu.A = 0b11110000;
+
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.A, 0b11100000);
+    EXPECT_EQ(cpu.carry, 1);
+}
+
+
+TEST(B0InstructionTest, RLA_2) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b00010111;
+    
+    cpu.carry = 1;
+    cpu.A = 0b11110000;
+
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.A, 0b11100001);
+    EXPECT_EQ(cpu.carry, 1);
+}
+
+TEST(B0InstructionTest, RRA) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b00011111;
+    
+    cpu.carry = 0;
+    cpu.A = 0b11110000;
+
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.A, 0b01111000);
+    EXPECT_EQ(cpu.carry, 0);
+}
+
+
+TEST(B0InstructionTest, RRA_2) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b00011111;
+    
+    cpu.carry = 1;
+    cpu.A = 0b11110000;
+
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.A, 0b11111000);
+    EXPECT_EQ(cpu.carry, 0);
+}

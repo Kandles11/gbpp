@@ -250,6 +250,25 @@ void CPU::execute(int ticks, Memory &mem) {
             carry = val & 0b00000001;
             ticks -= 4;
         }
+        else if (instruction == 0x17) {
+            //rla
+            uint8_t val = A;
+            uint8_t res = val << 1;
+            uint8_t mask = carry;
+            A = res | mask;
+            carry = val >> 7;
+            ticks -= 4;
+        }
+        else if (instruction == 0x1F) {
+            //rra
+            uint8_t val = A;
+            uint8_t res = val >> 1;
+            uint8_t mask = carry << 7;
+            A = res | mask;
+            carry = val & 0b00000001;
+            ticks -= 4;
+
+        }
     }
     return;
 }
