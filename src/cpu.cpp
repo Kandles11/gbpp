@@ -269,6 +269,17 @@ void CPU::execute(int ticks, Memory &mem) {
             ticks -= 4;
 
         }
+        else if (instruction == 0x37) {
+            // scf
+            carry = 1;
+            ticks -= 4;
+        }
+        else if (instruction == 0x3F)
+        {
+            // ccf
+            carry = !carry;
+            ticks -= 4;
+        }
     }
     return;
 }
