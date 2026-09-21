@@ -287,6 +287,53 @@ void CPU::execute(int ticks, Memory &mem) {
             PC += jumpValue;
             ticks -= 12;
         }
+        else if ((instruction & 0b11100111) == 0x20)
+        {
+            //jr cond, imm8
+            uint8_t condition = (instruction & 0b00011000) >> 3;
+            int8_t jumpValue = fetchByte(mem);
+            switch(condition){
+                case 0:
+                    //nz
+                    if (!zero) {
+                        PC += jumpValue;
+                        ticks -= 12;
+                    } else {
+                        ticks -= 8;
+                    }
+                    break;
+                case 1:
+                    //z
+                    if (zero) {
+                        PC += jumpValue;
+                        ticks -= 12;
+                    } else {
+                        ticks -= 8;
+                    }
+                    break;
+                case 2:
+                    //nc
+                    if (!carry) {
+                        PC += jumpValue;
+                        ticks -= 12;
+                    } else {
+                        ticks -= 8;
+                    }
+                    break;
+                case 3:
+                    //c
+                    if (carry) {
+                        PC += jumpValue;
+                        ticks -= 12;
+                    } else {
+                        ticks -= 8;
+                    }
+                    break;
+                default:
+                    std::cout << "invalid condition" << std::endl;
+                    break;
+            }
+        }
     }
     return;
 }

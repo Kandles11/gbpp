@@ -268,6 +268,39 @@ TEST(B0InstructionTest, JrImm8_2) {
     mem.data[0x0000] = 0b00011000;
     mem.data[0x0001] = -2;
 
+    cpu.execute(24, mem);
+    EXPECT_EQ(cpu.PC, 0);
+}
+
+TEST(B0InstructionTest, JrCondImm8) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b00100000;
+    mem.data[0x0001] = 5;
+    cpu.zero = false;
+
+    cpu.execute(12, mem);
+    EXPECT_EQ(cpu.PC, 7);
+}
+
+TEST(B0InstructionTest, JrCondImm8_2) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b00100000;
+    mem.data[0x0001] = 5;
+    cpu.zero = true;
+
+    cpu.execute(8, mem);
+    EXPECT_EQ(cpu.PC, 2);
+}
+
+TEST(B0InstructionTest, JrCondImm8_3) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b00100000;
+    mem.data[0x0001] = -2;
+    cpu.zero = false;
+
     cpu.execute(12, mem);
     EXPECT_EQ(cpu.PC, 0);
 }
