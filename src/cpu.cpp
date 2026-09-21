@@ -280,6 +280,13 @@ void CPU::execute(int ticks, Memory &mem) {
             carry = !carry;
             ticks -= 4;
         }
+        else if (instruction == 0x18)
+        {
+            //jr imm8
+            int8_t jumpValue = fetchByte(mem);
+            PC += jumpValue;
+            ticks -= 12;
+        }
     }
     return;
 }

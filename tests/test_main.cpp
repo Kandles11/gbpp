@@ -250,3 +250,24 @@ TEST(B0InstructionTest, CCF_1) {
     cpu.execute(4, mem);
     EXPECT_EQ(cpu.carry, 1);
 }
+
+TEST(B0InstructionTest, JrImm8) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b00011000;
+    mem.data[0x0001] = 5;
+
+    cpu.execute(12, mem);
+    EXPECT_EQ(cpu.PC, 7);
+}
+
+
+TEST(B0InstructionTest, JrImm8_2) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b00011000;
+    mem.data[0x0001] = -2;
+
+    cpu.execute(12, mem);
+    EXPECT_EQ(cpu.PC, 0);
+}
