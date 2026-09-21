@@ -337,6 +337,7 @@ void CPU::execute(int ticks, Memory &mem) {
         else if (instruction == 0x10)
         {
             //stop
+            // TODO: needs more nuance according to the docs
             ticks -= 4;
             break;
         }
