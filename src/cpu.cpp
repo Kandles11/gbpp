@@ -334,6 +334,12 @@ void CPU::execute(int ticks, Memory &mem) {
                     break;
             }
         }
+        else if (instruction == 0x10)
+        {
+            //stop
+            ticks -= 4;
+            break;
+        }
     }
     return;
 }

@@ -304,3 +304,12 @@ TEST(B0InstructionTest, JrCondImm8_3) {
     cpu.execute(12, mem);
     EXPECT_EQ(cpu.PC, 0);
 }
+
+TEST(B0InstructionTest, Stop) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b00010000;
+
+    cpu.execute(12, mem);
+    EXPECT_EQ(cpu.PC, 1);
+}
