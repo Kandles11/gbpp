@@ -313,3 +313,19 @@ TEST(B0InstructionTest, Stop) {
     cpu.execute(12, mem);
     EXPECT_EQ(cpu.PC, 1);
 }
+
+TEST(B1InstructionTest, LdR8R8) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b01000001; //ld B, C
+    cpu.B = 0x00;
+    cpu.C = 0x42;
+
+    EXPECT_EQ(cpu.B, 0);
+    EXPECT_EQ(cpu.C, 0x42);
+
+    cpu.execute(4, mem);
+    EXPECT_EQ(cpu.B, 0x42);
+    EXPECT_EQ(cpu.C, 0x42);
+    
+}

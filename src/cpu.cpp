@@ -341,6 +341,16 @@ void CPU::execute(int ticks, Memory &mem) {
             ticks -= 4;
             break;
         }
+        else if ((instruction & 0b11000000) == 0x40) 
+        {
+            //ld r8, r8
+            uint8_t dest_code = (instruction & 0b00111000) >> 3;
+            uint8_t src_code = (instruction & 0b00000111);
+            uint8_t* dest = decodeToRegister(dest_code);
+            uint8_t* src = decodeToRegister(src_code);
+            *dest = *src;
+            ticks -= 4;
+        }
     }
     return;
 }
