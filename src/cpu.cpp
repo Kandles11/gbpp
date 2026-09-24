@@ -4,9 +4,12 @@
 #include <bit>
 #include <iostream>
 #include <sys/syslimits.h>
+#include <sstream>   // std::ostringstream
+#include <iomanip>   // std::setw, std::setfill
 
 CPU::CPU() {
-    SP =PC = 0;
+    PC = 0;
+    SP = 0xFFFE;
     A = B = C = D = E = H = L = 0;
     zero = sub = halfcarry = carry = 0;
 }
@@ -433,10 +436,167 @@ void CPU::execute(int ticks, Memory &mem, bool unlimited) {
             sub = 0;
             ticks -= 8;
         }
+        else if ((instruction & 0b11100111) == 0xC4)
+        {
+            //call cond, imm16
+            uint8_t condition = (instruction & 0b00011000) >> 3;
+            uint16_t dest = fetchWord(mem);
+            switch(condition){
+                case 0:
+                    //nz
+                    if (!zero) {
+                        SP -= 1;
+                        mem.data[SP] = PC >> 8;
+                        SP -= 1;
+                        mem.data[SP] = PC & 0xFF;
+                        PC = dest;
+                        ticks -= 24;
+                    } else {
+                        ticks -= 12;
+                    }
+                    break;
+                case 1:
+                    //z
+                    if (zero) {
+                        SP -= 1;
+                        mem.data[SP] = PC >> 8;
+                        SP -= 1;
+                        mem.data[SP] = PC & 0xFF;
+                        PC = dest;
+                        ticks -= 24;
+                    } else {
+                        ticks -= 12;
+                    }
+                    break;
+                case 2:
+                    //nc
+                    if (!carry) {
+                        SP -= 1;
+                        mem.data[SP] = PC >> 8;
+                        SP -= 1;
+                        mem.data[SP] = PC & 0xFF;
+                        PC = dest;
+                        ticks -= 24;
+                    } else {
+                        ticks -= 12;
+                    }
+                    break;
+                case 3:
+                    //c
+                    if (carry) {
+                        SP -= 1;
+                        mem.data[SP] = PC >> 8;
+                        SP -= 1;
+                        mem.data[SP] = PC & 0xFF;
+                        PC = dest;
+                        ticks -= 24;
+                    } else {
+                        ticks -= 12;
+                    }
+                    break;
+                default:
+                    std::cout << "invalid condition" << std::endl;
+                    break;
+            }
+        }
+        else if (instruction == 0xC6)
+        {
+            //add a, imm8
+            uint8_t val = fetchByte(mem);
+            halfcarry = (A & 0x0F) + (val & 0x0F) > 0x0F;
+            uint16_t fullVal = A + val;
+            A = A + val;
+            if (fullVal > 0xFF) { carry = 1;} else { carry = 0;}
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 0;
+            ticks -= 8;
+        }
+        else if (instruction == 0xCE)
+        {
+            //adc a, imm8
+            uint8_t val = fetchByte(mem);
+            halfcarry = (A & 0x0F) + (val & 0x0F) + carry > 0x0F;
+            uint16_t fullVal = A + val + carry;
+            A = A + val + carry;
+            if (fullVal > 0xFF) { carry = 1;} else { carry = 0;}
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 0;
+            ticks -= 8;
+        }
+        else if (instruction == 0xD6)
+        {
+            //sub a, imm8
+            uint8_t val = fetchByte(mem);
+            halfcarry = (A & 0x0F) < (val & 0x0F);
+            carry = val > A;
+            A = A - val;
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 1;
+            ticks -= 8;
+        }
+        else if (instruction == 0xDE)
+        {
+            //sbc a, imm8
+            uint8_t val = fetchByte(mem);
+            halfcarry = (A & 0x0F) < (val & 0x0F) + carry;
+            carry = val + carry > A;
+            A = A - (val + carry);
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 1;
+            ticks -= 8;
+        }
+        else if (instruction == 0xE6)
+        {
+            //and a, imm8
+            uint8_t val = fetchByte(mem);
+            A = A & val;
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 0;
+            halfcarry = 1;
+            carry = 0;
+            ticks -= 8;
+        }
+        else if (instruction == 0xEE)
+        {
+            //xor a, imm8
+            uint8_t val = fetchByte(mem);
+            A = A ^ val;
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 0;
+            halfcarry = 0;
+            carry = 0;
+            ticks -= 8;
+        }
+        else if (instruction == 0xF6)
+        {
+            //or a, imm8
+            uint8_t val = fetchByte(mem);
+            A = A | val;
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 0;
+            halfcarry = 0;
+            carry = 0;
+            ticks -= 8;
+        }
+        else if (instruction == 0xFE)
+        {
+            //cp a, imm8
+            uint8_t val = fetchByte(mem);
+            uint8_t result = A - val;
+            if (result == 0) { zero = 1;} else { zero = 0;}
+            sub = 1;
+            halfcarry = (A & 0x0F) < (val & 0x0F);
+            carry = val > A;
+            ticks -= 8;
+        }
+
+
+
         else {
-            std::string msg;
-            msg = "unknown instruction given: " + std::to_string(static_cast<char>(instruction));
-            throw std::runtime_error(msg); 
+            std::ostringstream ss;
+            ss << "unknown instruction given: 0x" << std::hex << std::setw(2)
+            << std::setfill('0') << int(instruction);
+            throw std::runtime_error(ss.str()); 
         }
         outputToSerial(mem);
     }

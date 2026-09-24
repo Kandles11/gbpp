@@ -482,3 +482,36 @@ TEST(B3InstructionTest, AdcAImm8_2) {
     EXPECT_EQ(cpu.sub, 0);
     EXPECT_EQ(cpu.zero, 0);
 }
+TEST(B3InstructionTest, CallCCImm16) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b11000100; // call nz, 0xDAFA
+    mem.data[0x0001] = 0xFA;
+    mem.data[0x0002] = 0xDA;
+    cpu.SP = 0xFFFE;
+    cpu.zero = 0;
+
+    cpu.execute(24, mem);
+
+    EXPECT_EQ(cpu.PC, 0xDAFA);
+    EXPECT_EQ(cpu.SP, 0xFFFC);
+    EXPECT_EQ(mem.data[0xFFFD], 0x00);
+    EXPECT_EQ(mem.data[0xFFFC], 0x03);
+}
+
+TEST(B3InstructionTest, CallCCImm16_2) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b11000100; // call nz, 0xDAFA
+    mem.data[0x0001] = 0xFA;
+    mem.data[0x0002] = 0xDA;
+    cpu.SP = 0xFFFE;
+    cpu.zero = 1;
+
+    cpu.execute(12, mem);
+
+    EXPECT_EQ(cpu.PC, 0x0003);
+    EXPECT_EQ(cpu.SP, 0xFFFE);
+    EXPECT_EQ(mem.data[0xFFFD], 0x00);
+    EXPECT_EQ(mem.data[0xFFFC], 0x00);
+}
