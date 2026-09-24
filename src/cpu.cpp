@@ -80,17 +80,42 @@ uint8_t* CPU::decodeToRegister(uint8_t code) {
         case 5:
             return &L;
             break;
-        case 6:
-            std::cout << "UNIMPLEMENTED TODAY" << std::endl;
-            break;
         case 7:
             return &A;
             break;
         default:
-            return nullptr;
+            throw std::runtime_error("INVALID REGISTER CODE"); 
     }
     return nullptr;
 }
+
+uint8_t CPU::getRegFromCode(uint8_t code, Memory mem)
+{
+    if (code == 6) {
+        // [HL] case
+        uint16_t addr = getHL();
+        return mem.data[addr];
+    }
+    else {
+        uint8_t* reg = decodeToRegister(code);
+        return *reg;
+    }
+}
+
+void CPU::setRegFromCode(uint8_t code, uint8_t val, Memory mem)
+{
+    if (code == 6) {
+        // [HL] case
+        uint16_t addr = getHL();
+        mem.data[addr] = val;
+    }
+    else {
+        uint8_t* reg = decodeToRegister(code);
+        *reg = val;
+    }
+}
+
+
 
 uint16_t CPU::getWordRegFromCode(uint8_t code) {
     uint16_t val;
@@ -149,8 +174,28 @@ uint16_t CPU::fetchWord(Memory &mem) {
     return data;
 }
 
+void CPU::outputToSerial(Memory &mem)
+{
+    char val = mem.data[0xFF01];
+    uint8_t SCData = mem.data[0xFF02];
+    bool transferEnable = SCData >> 7;
+    enum class ClockSelect { External, Internal};
+    ClockSelect cs = ClockSelect::External;
+    if ((SCData & 0x01) == 0) {
+        cs = ClockSelect::External;
+    } else { 
+        cs = ClockSelect::Internal;
+    }
+    if (transferEnable == 1)
+    {
+        std::cout << val << std::flush;
+        mem.data[0xFF02] = 0x00;
+    }
+
+}
+
 void CPU::execute(int ticks, Memory &mem) {
-    while (ticks > 0){
+    while (true){
         uint8_t instruction = fetchByte(mem);
         if (instruction == 0x00){
             //nop
@@ -210,25 +255,24 @@ void CPU::execute(int ticks, Memory &mem) {
             // TODO HANDLE FLAGS HERE
             //inc r8
             int code = (instruction >> 3) & 0x07;
-            uint8_t* target = decodeToRegister(code);
-            *target = *target + 1;
+            uint8_t val = getRegFromCode(code, mem);
+            setRegFromCode(code, val+1, mem);
             ticks -= 4;
         }
         else if ((instruction & 0xC7) == 0x05) {
-            //inc r8
+            //dec r8
             //TODO HANDLE FLAGS HERE
             int code = (instruction >> 3) & 0x07;
-            uint8_t* target = decodeToRegister(code);
-            *target = *target - 1;
+            uint8_t val = getRegFromCode(code, mem);
+            setRegFromCode(code, val-1, mem);
             ticks -= 4;
         }
         else if ((instruction & 0xC7) == 0x06)
         {
             //ld r8, imm8
             int code = (instruction >> 3) & 0x07;
-            uint8_t* dest = decodeToRegister(code);
             uint8_t val = fetchByte(mem);
-            *dest = val;
+            setRegFromCode(code, val, mem);
             ticks -= 4;
         }
         else if (instruction == 0x07)
@@ -347,25 +391,30 @@ void CPU::execute(int ticks, Memory &mem) {
             //ld r8, r8
             uint8_t dest_code = (instruction & 0b00111000) >> 3;
             uint8_t src_code = (instruction & 0b00000111);
-            uint8_t* dest = decodeToRegister(dest_code);
-            uint8_t* src = decodeToRegister(src_code);
-            *dest = *src;
+            uint8_t src_val = getRegFromCode(src_code, mem);
+            setRegFromCode(dest_code, src_val, mem);
             ticks -= 4;
         }
         else if ((instruction & 0b11111000) == 0x80)
         {
             //add a, r8
             uint8_t src_code = (instruction & 0b00111000) >> 3;
-            uint8_t* src = decodeToRegister(src_code);
-            uint8_t val = *src;
-            halfcarry = (A & 0x0F) + (val & 0x0F) > 0x0F;
-            uint16_t fullVal = A + val;
+            uint8_t src_val = getRegFromCode(src_code, mem);
+            halfcarry = (A & 0x0F) + (src_val & 0x0F) > 0x0F;
+            uint16_t fullVal = A + src_val;
             if (fullVal > 0xFF) { carry = 1;} else { carry = 0;}
-            A = A + val;
+            A = A + src_val;
             if (A == 0) { zero = 1;} else { zero = 0;}
             sub = 0;
             ticks -= 4;
         }
+        else {
+            std::string msg;
+            msg = "unknown instruction given: " + std::to_string(static_cast<char>(instruction));
+            throw std::runtime_error(msg); 
+        }
+        outputToSerial(mem);
     }
     return;
 }
+

@@ -2,6 +2,24 @@
 #include <gtest/gtest.h>
 #include <cpu.hpp>
 
+TEST(RegisterTest, GetReg) {
+    CPU cpu;
+    Memory mem;
+    cpu.setBC(0xaabb);
+
+    EXPECT_EQ(cpu.getRegFromCode(000, mem), 0xaa);
+    EXPECT_EQ(cpu.getRegFromCode(001, mem), 0xbb);
+}
+
+TEST(RegisterTest, GetRegHL) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x4242] = 0xAB;
+    cpu.setHL(0x4242);
+
+    EXPECT_EQ(cpu.getRegFromCode(0b110, mem), 0xAB);
+}
+
 TEST(RegisterTest, SetBC) {
     CPU cpu;
     cpu.setBC(0xaabb);

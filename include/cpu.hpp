@@ -22,10 +22,15 @@ struct CPU {
 
     void setWordRegFromCode(uint8_t code, uint16_t val);
     uint16_t getWordRegFromCode(uint8_t code);
+
+    void setRegFromCode(uint8_t code, uint8_t val, Memory mem);
+    uint8_t getRegFromCode(uint8_t code, Memory mem);
+
     uint8_t* decodeToRegister(uint8_t code);
 
     uint8_t fetchByte(Memory &mem);
     uint16_t fetchWord(Memory &mem);
 
+    void outputToSerial(Memory &mem);
     void execute(int cycles, Memory &mem);
 };
