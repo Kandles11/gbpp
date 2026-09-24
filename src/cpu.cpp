@@ -194,8 +194,8 @@ void CPU::outputToSerial(Memory &mem)
 
 }
 
-void CPU::execute(int ticks, Memory &mem) {
-    while (true){
+void CPU::execute(int ticks, Memory &mem, bool unlimited) {
+    while (ticks > 0 or unlimited){
         uint8_t instruction = fetchByte(mem);
         if (instruction == 0x00){
             //nop
@@ -420,6 +420,18 @@ void CPU::execute(int ticks, Memory &mem) {
             if (A == 0) { zero = 1;} else { zero = 0;}
             sub = 0;
             ticks -= 4;
+        }
+        else if (instruction == 0xCE)
+        {
+            //adc a, imm8
+            uint8_t val = fetchByte(mem);
+            halfcarry = (A & 0x0F) + (val & 0x0F) + carry > 0x0F;
+            uint16_t fullVal = A + val + carry;
+            A = A + val + carry;
+            if (fullVal > 0xFF) { carry = 1;} else { carry = 0;}
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 0;
+            ticks -= 8;
         }
         else {
             std::string msg;

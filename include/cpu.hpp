@@ -32,5 +32,5 @@ struct CPU {
     uint16_t fetchWord(Memory &mem);
 
     void outputToSerial(Memory &mem);
-    void execute(int cycles, Memory &mem);
+    void execute(int cycles, Memory &mem, bool unlimited = false);
 };

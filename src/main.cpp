@@ -38,7 +38,7 @@ int main() {
     setPostBootRomState(cpu);
 
     try {
-        cpu.execute(100, mem);
+        cpu.execute(100, mem, true);
     }
     catch (const std::runtime_error& e) {
         std::cout << std::flush; 

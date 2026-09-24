@@ -448,3 +448,37 @@ TEST(B2InstructionTest, AdcAR8_3){
     EXPECT_EQ(cpu.sub, 0);
     EXPECT_EQ(cpu.zero, 1);
 }
+
+TEST(B3InstructionTest, AdcAImm8) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b11001110; //adc A, imm8
+    mem.data[0x0001] = 0x05;
+    cpu.A = 0x00;
+    cpu.carry = 1;
+
+    cpu.execute(8, mem);
+
+    EXPECT_EQ(cpu.A, 0x06);
+    EXPECT_EQ(cpu.carry, 0);
+    EXPECT_EQ(cpu.halfcarry, 0);
+    EXPECT_EQ(cpu.sub, 0);
+    EXPECT_EQ(cpu.zero, 0);
+}
+
+TEST(B3InstructionTest, AdcAImm8_2) {
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b11001110; //adc A, imm8
+    mem.data[0x0001] = 0x0F;
+    cpu.A = 0x00;
+    cpu.carry = 1;
+
+    cpu.execute(8, mem);
+
+    EXPECT_EQ(cpu.A, 0x10);
+    EXPECT_EQ(cpu.carry, 0);
+    EXPECT_EQ(cpu.halfcarry, 1);
+    EXPECT_EQ(cpu.sub, 0);
+    EXPECT_EQ(cpu.zero, 0);
+}
