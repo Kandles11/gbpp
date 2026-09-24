@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <bit>
 #include <iostream>
+#include <sys/syslimits.h>
 
 CPU::CPU() {
     SP =PC = 0;
@@ -349,6 +350,20 @@ void CPU::execute(int ticks, Memory &mem) {
             uint8_t* dest = decodeToRegister(dest_code);
             uint8_t* src = decodeToRegister(src_code);
             *dest = *src;
+            ticks -= 4;
+        }
+        else if ((instruction & 0b11111000) == 0x80)
+        {
+            //add a, r8
+            uint8_t src_code = (instruction & 0b00111000) >> 3;
+            uint8_t* src = decodeToRegister(src_code);
+            uint8_t val = *src;
+            halfcarry = (A & 0x0F) + (val & 0x0F) > 0x0F;
+            uint16_t fullVal = A + val;
+            if (fullVal > 0xFF) { carry = 1;} else { carry = 0;}
+            A = A + val;
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 0;
             ticks -= 4;
         }
     }

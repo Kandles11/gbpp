@@ -1,3 +1,4 @@
+#include "gtest/gtest.h"
 #include <gtest/gtest.h>
 #include <cpu.hpp>
 
@@ -328,4 +329,52 @@ TEST(B1InstructionTest, LdR8R8) {
     EXPECT_EQ(cpu.B, 0x42);
     EXPECT_EQ(cpu.C, 0x42);
     
+}
+
+TEST(B2InstructionTest, AddAR8){
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b10000000; //add A, B
+    cpu.A = 0;
+    cpu.B = 5;
+
+    cpu.execute(4, mem);
+
+    EXPECT_EQ(cpu.A, 5);
+    EXPECT_EQ(cpu.carry, 0);
+    EXPECT_EQ(cpu.halfcarry, 0);
+    EXPECT_EQ(cpu.sub, 0);
+    EXPECT_EQ(cpu.zero, 0);
+}
+
+TEST(B2InstructionTest, AddAR8_2){
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b10000000; //add A, B
+    cpu.A = 0x0F;
+    cpu.B = 1;
+
+    cpu.execute(4, mem);
+
+    EXPECT_EQ(cpu.A, 0x10);
+    EXPECT_EQ(cpu.carry, 0);
+    EXPECT_EQ(cpu.halfcarry, 1);
+    EXPECT_EQ(cpu.sub, 0);
+    EXPECT_EQ(cpu.zero, 0);
+}
+
+TEST(B2InstructionTest, AddAR8_3){
+    CPU cpu;
+    Memory mem;
+    mem.data[0x0000] = 0b10000000; //add A, B
+    cpu.A = 0xFF;
+    cpu.B = 1;
+
+    cpu.execute(4, mem);
+
+    EXPECT_EQ(cpu.A, 0x00);
+    EXPECT_EQ(cpu.carry, 1);
+    EXPECT_EQ(cpu.halfcarry, 1);
+    EXPECT_EQ(cpu.sub, 0);
+    EXPECT_EQ(cpu.zero, 1);
 }
