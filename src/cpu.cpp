@@ -398,12 +398,25 @@ void CPU::execute(int ticks, Memory &mem) {
         else if ((instruction & 0b11111000) == 0x80)
         {
             //add a, r8
-            uint8_t src_code = (instruction & 0b00111000) >> 3;
+            uint8_t src_code = (instruction & 0b00000111) >> 3;
             uint8_t src_val = getRegFromCode(src_code, mem);
             halfcarry = (A & 0x0F) + (src_val & 0x0F) > 0x0F;
             uint16_t fullVal = A + src_val;
             if (fullVal > 0xFF) { carry = 1;} else { carry = 0;}
             A = A + src_val;
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 0;
+            ticks -= 4;
+        }
+        else if ((instruction & 0b11111000) == 0x88)
+        {
+            //adc a, r8
+            uint8_t src_code = (instruction & 0b00000111) >> 3;
+            uint8_t src_val = getRegFromCode(src_code, mem);
+            halfcarry = (A & 0x0F) + (src_val & 0x0F) + carry > 0x0F;
+            uint16_t fullVal = A + src_val + carry;
+            A = A + src_val + carry;
+            if (fullVal > 0xFF) { carry = 1;} else { carry = 0;}
             if (A == 0) { zero = 1;} else { zero = 0;}
             sub = 0;
             ticks -= 4;
