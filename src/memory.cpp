@@ -5,3 +5,12 @@ void Memory::clear() {
         data[i] = 0x00;
     }
 }
+
+uint8_t Memory::readMem(uint16_t addr) {
+    if (addr == 0xFF44)
+    {
+        //lcd return
+        return 0x90;
+    }
+    return data[addr];
+}

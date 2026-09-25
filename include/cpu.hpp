@@ -32,5 +32,6 @@ struct CPU {
     uint16_t fetchWord(Memory &mem);
 
     void outputToSerial(Memory &mem);
-    void execute(int cycles, Memory &mem, bool unlimited = false);
+    void logStatus(std::ofstream *logfile, Memory& mem);
+    void execute(int cycles, Memory &mem, std::ofstream *logfile = nullptr,  bool unlimited = false);
 };

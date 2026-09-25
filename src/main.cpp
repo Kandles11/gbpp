@@ -5,7 +5,8 @@
 #include <pthread.h>
 #include "cpu.hpp"
 
-void setPostBootRomState(CPU cpu)
+
+void setPostBootRomState(CPU &cpu)
 {
     cpu.A = 0x01; 
     cpu.zero = 1;
@@ -36,9 +37,11 @@ int main() {
     GBinary.read(reinterpret_cast<char*>(mem.data), 0x8000);
 
     setPostBootRomState(cpu);
+    std::ofstream logfile("debug.txt");
 
+    std::cout << "starting execution" << std::endl;
     try {
-        cpu.execute(100, mem, true);
+        cpu.execute(200, mem, &logfile,false);
     }
     catch (const std::runtime_error& e) {
         std::cout << std::flush; 

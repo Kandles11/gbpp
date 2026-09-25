@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <bit>
 #include <iostream>
+#include <fstream> 
 #include <sys/syslimits.h>
 #include <sstream>   // std::ostringstream
 #include <iomanip>   // std::setw, std::setfill
@@ -97,7 +98,7 @@ uint8_t CPU::getRegFromCode(uint8_t code, Memory mem)
     if (code == 6) {
         // [HL] case
         uint16_t addr = getHL();
-        return mem.data[addr];
+        return mem.readMem(addr);
     }
     else {
         uint8_t* reg = decodeToRegister(code);
@@ -163,15 +164,15 @@ void CPU::setWordRegFromCode(uint8_t code, uint16_t val) {
 }
 
 uint8_t CPU::fetchByte(Memory &mem) {
-    uint8_t data = mem.data[PC];
+    uint8_t data = mem.readMem(PC);
     PC++;
     return data;
 }
 
 uint16_t CPU::fetchWord(Memory &mem) {
-    uint8_t lo = mem.data[PC];
+    uint8_t lo = mem.readMem(PC);
     PC++;
-    uint8_t hi = mem.data[PC];
+    uint8_t hi = mem.readMem(PC);
     PC++;
     uint16_t data = (hi << 8) | lo;
     return data;
@@ -179,8 +180,8 @@ uint16_t CPU::fetchWord(Memory &mem) {
 
 void CPU::outputToSerial(Memory &mem)
 {
-    char val = mem.data[0xFF01];
-    uint8_t SCData = mem.data[0xFF02];
+    char val = mem.readMem(0xFF01);
+    uint8_t SCData = mem.readMem(0xFF02);
     bool transferEnable = SCData >> 7;
     enum class ClockSelect { External, Internal};
     ClockSelect cs = ClockSelect::External;
@@ -197,12 +198,33 @@ void CPU::outputToSerial(Memory &mem)
 
 }
 
-void CPU::execute(int ticks, Memory &mem, bool unlimited) {
+void CPU::logStatus(std::ofstream* logfile, Memory& mem) {
+    *logfile << "A:" << std::hex << std::uppercase 
+            << std::setw(2) << std::setfill('0') << +A 
+            << " F:" << std::setw(2) << +getF() 
+            << " B:" << std::setw(2) << +B 
+            << " C:" << std::setw(2) << +C 
+            << " D:" << std::setw(2) << +D 
+            << " E:" << std::setw(2) << +E 
+            << " H:" << std::setw(2) << +H 
+            << " L:" << std::setw(2) << +L 
+            << " SP:" << std::setw(4) << +SP 
+            << " PC:" << std::setw(4) << +PC 
+            << " PCMEM:" << std::setw(2) << +mem.readMem(PC) 
+            << "," << std::setw(2) << +mem.readMem(PC+1) 
+            << "," << std::setw(2) << +mem.readMem(PC+2) 
+            << "," << std::setw(2) << +mem.readMem(PC+3) 
+            << std::endl;
+}
+
+void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited) {
     while (ticks > 0 or unlimited){
+        if (logfile) {
+            logStatus(logfile, mem);
+        }
         uint8_t instruction = fetchByte(mem);
         if (instruction == 0x00){
             //nop
-            PC++;
             ticks -= 4;
         }
         else if ((instruction & 0xCF) == 0x01) {
@@ -215,15 +237,29 @@ void CPU::execute(int ticks, Memory &mem, bool unlimited) {
         else if ((instruction & 0xCF) == 0x02) {
             //ld [r16mem], a
             int code = (instruction >> 4) & 0x03;
-            uint16_t address = getWordRegFromCode(code);
-            mem.data[address] = A;
+            if (code == 2 | code == 3 ) {
+                //hl +- case
+                uint16_t address = getHL();
+                mem.data[address] = A;
+                if (code == 2) {setHL(address + 1);} else {setHL(address - 1);}
+            } else {
+                uint16_t address = getWordRegFromCode(code);
+                mem.data[address] = A;
+            }
             ticks -= 8;
         }
         else if ((instruction & 0xCF) == 0x0A) {
             // ld a, [r16mem]
             int code = (instruction >> 4) & 0x03;
-            uint16_t address = getWordRegFromCode(code);
-            A = mem.data[address];
+            if (code == 2 | code == 3 ) {
+                //hl +- case
+                uint16_t address = getHL();
+                A = mem.readMem(address);
+                if (code == 2) {setHL(address + 1);} else {setHL(address - 1);}
+            } else {
+                uint16_t address = getWordRegFromCode(code);
+                A = mem.readMem(address);
+            }
             ticks -= 8;
         }
         else if (instruction == 0x08) {
@@ -255,19 +291,23 @@ void CPU::execute(int ticks, Memory &mem, bool unlimited) {
             ticks -= 8;
         }
         else if ((instruction & 0xC7) == 0x04) {
-            // TODO HANDLE FLAGS HERE
             //inc r8
             int code = (instruction >> 3) & 0x07;
             uint8_t val = getRegFromCode(code, mem);
             setRegFromCode(code, val+1, mem);
+            if (val + 1 == 0) { zero = 1; } else { zero = 0;} 
+            sub = 0;
+            if (val == 0x0F) { halfcarry = 1; } else { halfcarry = 0;}
             ticks -= 4;
         }
         else if ((instruction & 0xC7) == 0x05) {
             //dec r8
-            //TODO HANDLE FLAGS HERE
             int code = (instruction >> 3) & 0x07;
             uint8_t val = getRegFromCode(code, mem);
             setRegFromCode(code, val-1, mem);
+            if (val - 1 == 0) { zero = 1;} else {zero = 0;}
+            sub = 1;
+            if ((val & 0x0F) == 0x00) { halfcarry = 1;} else {halfcarry =0;}
             ticks -= 4;
         }
         else if ((instruction & 0xC7) == 0x06)
@@ -589,9 +629,13 @@ void CPU::execute(int ticks, Memory &mem, bool unlimited) {
             carry = val > A;
             ticks -= 8;
         }
-
-
-
+        else if (instruction == 0xc3)
+        {
+            //jp imm16
+            uint16_t addr = fetchWord(mem);
+            PC = addr;
+            ticks -= 16;
+        }
         else {
             std::ostringstream ss;
             ss << "unknown instruction given: 0x" << std::hex << std::setw(2)
@@ -602,4 +646,5 @@ void CPU::execute(int ticks, Memory &mem, bool unlimited) {
     }
     return;
 }
+
 
