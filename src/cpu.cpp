@@ -711,9 +711,10 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
         {
             //sbc a, imm8
             uint8_t val = fetchByte(mem);
-            halfcarry = (A & 0x0F) < (val & 0x0F) + carry;
-            carry = val + carry > A;
-            A = A - (val + carry);
+            bool oldCarry = carry;
+            halfcarry = (A & 0x0F) < (val & 0x0F) + oldCarry;
+            carry = val + oldCarry > A;
+            A = A - (val + oldCarry);
             if (A == 0) { zero = 1;} else { zero = 0;}
             sub = 1;
             ticks -= 8;

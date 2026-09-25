@@ -29,7 +29,7 @@ int main() {
     Memory mem;
     mem.clear();
 
-    std::ifstream GBinary("03-op-sp-hl.gb", std::ios::binary);
+    std::ifstream GBinary("04-op-r-imm.gb", std::ios::binary);
     if (!GBinary) {
         std::cerr << "Failed to open ROM\n";
         return 1;
