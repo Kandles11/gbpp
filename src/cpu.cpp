@@ -315,6 +315,43 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             //nop
             ticks -= 4;
         }
+        else if (instruction == 0xF9)
+        {
+            uint16_t val = getHL();
+            SP = val;
+            ticks -= 8;
+        }
+        else if (instruction == 0xfa)
+        {
+            // ld a, [imm16]
+            uint16_t addr = fetchWord(mem);
+            A = mem.readMem(addr);
+            ticks -= 16;
+        }
+        else if (instruction == 0xe8)
+        {
+            // add sp, imm8
+            uint8_t raw = fetchByte(mem);
+            int8_t val = (int8_t)raw;
+            halfcarry = ((SP & 0x0F) + (raw & 0x0F)) > 0x0F;  
+            carry = ((SP & 0xFF) + (raw & 0xFF)) > 0xFF;  
+            SP = SP + val;
+            zero = 0;
+            sub = 0;
+            ticks -= 16;
+        }
+        else if (instruction == 0xf8)
+        {
+            // ld hl, sp+e8
+            uint8_t raw = fetchByte(mem);
+            int8_t val = (int8_t)raw;
+            halfcarry = ((SP & 0x0F) + (raw & 0x0F)) > 0x0F;
+            carry = ((SP & 0xFF) + (raw & 0xFF)) > 0xFF;  
+            setHL(SP + val);
+            zero =0;
+            sub = 0;
+            ticks -= 12;
+        }
         else if ((instruction & 0xCF) == 0x01) {
             //ld r16, imm16	
             int code = (instruction >> 4) & 0x03;
@@ -353,7 +390,8 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
         else if (instruction == 0x08) {
             //ld [imm16], sp
             uint16_t address = fetchWord(mem);
-            mem.data[address] = SP;
+            mem.data[address] = (0x00FF & SP);
+            mem.data[address+1] = SP >> 8;
             ticks -= 20;
         }
         else if ((instruction & 0xCF) == 0x03) {
@@ -751,13 +789,6 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             mem.data[addr] = A;
             ticks -= 16;
         }
-        else if (instruction == 0xfa)
-        {
-            // ld a, [imm16]
-            uint16_t addr = fetchWord(mem);
-            A = mem.readMem(addr);
-            ticks -= 16;
-        }
         else if (instruction == 0xe0)
         {
             // ldh [imm8], a
@@ -910,6 +941,7 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             carry = 0;
             ticks -=4;
         }
+
         else {
             std::ostringstream ss;
             ss << "unknown instruction given: 0x" << std::hex << std::setw(2)
