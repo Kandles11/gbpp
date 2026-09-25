@@ -8,11 +8,14 @@ struct CPU {
     uint16_t PC;
     uint8_t A, B, C, D, E, H, L;
     bool zero, sub, halfcarry, carry; //flags
+    bool interruptMasterEnable;
 
     uint16_t get_word_reg(const uint8_t &hi, const uint8_t &lo);
     void set_word_reg(const uint16_t value, uint8_t &hi, uint8_t &lo);    
     uint8_t getF();
+    void setF(uint8_t val);
     uint16_t getAF();
+    void setAF(uint16_t);
     void setBC(uint16_t);
     void setDE(uint16_t);
     void setHL(uint16_t);
@@ -23,7 +26,10 @@ struct CPU {
     void setWordRegFromCode(uint8_t code, uint16_t val);
     uint16_t getWordRegFromCode(uint8_t code);
 
-    void setRegFromCode(uint8_t code, uint8_t val, Memory mem);
+    uint16_t getStackRegFromCode(uint8_t code);
+    void setStackRegFromCode(uint8_t code, uint16_t val);
+
+    void setRegFromCode(uint8_t code, uint8_t val, Memory& mem);
     uint8_t getRegFromCode(uint8_t code, Memory mem);
 
     uint8_t* decodeToRegister(uint8_t code);

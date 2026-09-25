@@ -41,7 +41,7 @@ int main() {
 
     std::cout << "starting execution" << std::endl;
     try {
-        cpu.execute(200, mem, &logfile,false);
+        cpu.execute(5000000, mem, &logfile,false);
     }
     catch (const std::runtime_error& e) {
         std::cout << std::flush; 

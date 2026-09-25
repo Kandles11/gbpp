@@ -1,4 +1,5 @@
 #include "cpu.hpp"
+#include <codecvt>
 #include <cstddef>
 #include <cstdint>
 #include <bit>
@@ -13,6 +14,7 @@ CPU::CPU() {
     SP = 0xFFFE;
     A = B = C = D = E = H = L = 0;
     zero = sub = halfcarry = carry = 0;
+    interruptMasterEnable = 0;
 }
 
 
@@ -34,6 +36,13 @@ uint8_t CPU::getF() {
     return flags;
 }
 
+void CPU::setF(uint8_t val) {
+    zero      = (val >> 7) & 1;
+    sub       = (val >> 6) & 1;
+    halfcarry = (val >> 5) & 1;
+    carry     = (val >> 4) & 1;
+}
+
 uint16_t CPU::getAF() {
     uint16_t af = A;
     af = (A << 8) | getF();
@@ -50,6 +59,14 @@ void CPU::setDE(uint16_t val) {
 
 void CPU::setHL(uint16_t val) {
     set_word_reg(val, H, L);
+}
+
+void CPU::setAF(uint16_t val) {
+    uint8_t hi = (0xFF00 & val) >> 8;
+    uint8_t lo = 0x00FF & val;
+    A = hi;
+    setF(lo);
+    return;
 }
 
 uint16_t CPU::getBC() {
@@ -106,7 +123,7 @@ uint8_t CPU::getRegFromCode(uint8_t code, Memory mem)
     }
 }
 
-void CPU::setRegFromCode(uint8_t code, uint8_t val, Memory mem)
+void CPU::setRegFromCode(uint8_t code, uint8_t val, Memory& mem)
 {
     if (code == 6) {
         // [HL] case
@@ -160,6 +177,48 @@ void CPU::setWordRegFromCode(uint8_t code, uint16_t val) {
         default:
             std::cout << "Invalid register code given" << std::endl;
             break; 
+    }
+}
+
+uint16_t CPU::getStackRegFromCode(uint8_t code) {
+    uint16_t val;
+    switch (code) {
+        case 0:
+            val = getBC();
+            break;
+        case 1:
+            val = getDE();
+            break;
+        case 2:
+            val = getHL();
+            break;
+        case 3:
+            val = getAF();
+            break;
+        default:
+            val= NULL;
+            break;
+    }
+    return val;
+}
+
+void CPU::setStackRegFromCode(uint8_t code, uint16_t val) {
+    switch (code) {
+        case 0:
+            setBC(val);
+            break;
+        case 1:
+            setDE(val);
+            break;
+        case 2:
+            setHL(val);
+            break;
+        case 3:
+            setAF(val);
+            break;
+        default:
+            std::cout << "Invalid register code given" << std::endl;
+            break;
     }
 }
 
@@ -223,7 +282,36 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             logStatus(logfile, mem);
         }
         uint8_t instruction = fetchByte(mem);
-        if (instruction == 0x00){
+        if (instruction == 0xCB) {
+            uint8_t nextInstr = fetchByte(mem);
+            if ((nextInstr & 0b11111000) == 0x38)
+            {
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                uint8_t shifted = val >> 1;
+                carry = val & 1;
+                setRegFromCode(code, shifted, mem);
+                if (shifted == 0) { zero = 1;} else {zero = 0;}
+                sub = 0;
+                halfcarry =0;
+                ticks -= 8;
+            }
+            else if ((nextInstr & 0b11111000) == 0x18)
+            {
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                uint8_t oldCarry = carry;
+                uint8_t shifted = val >> 1;
+                carry = val & 1;
+                shifted = shifted | (oldCarry << 7);
+                setRegFromCode(code, shifted, mem);
+                if (shifted == 0) { zero = 1;} else {zero = 0;}
+                sub =0 ;    
+                halfcarry =0;
+                ticks -= 8;
+            }
+        }
+        else if (instruction == 0x00){
             //nop
             ticks -= 4;
         }
@@ -283,21 +371,25 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             ticks -= 8; 
         }
         else if ((instruction & 0xCF) == 0x09) {
-            // TODO HANDLE FLAGS HERE
             //add hl, r16
             int code = (instruction >> 4) & 0x03;
             uint16_t val = getWordRegFromCode(code);
+            uint32_t fullval = val + getHL();
+            halfcarry = ((getHL() & 0x0FFF) + (val & 0x0FFF)) > 0x0FFF;
             setHL(getHL() + val);
+            sub =0;
+            if (fullval > 0xFFFF) { carry = 1; } else {carry = 0;} 
             ticks -= 8;
         }
         else if ((instruction & 0xC7) == 0x04) {
             //inc r8
             int code = (instruction >> 3) & 0x07;
             uint8_t val = getRegFromCode(code, mem);
-            setRegFromCode(code, val+1, mem);
-            if (val + 1 == 0) { zero = 1; } else { zero = 0;} 
+            uint8_t newVal = val + 1;
+            setRegFromCode(code, newVal, mem);
+            if (newVal == 0) { zero = 1; } else { zero = 0;} 
             sub = 0;
-            if (val == 0x0F) { halfcarry = 1; } else { halfcarry = 0;}
+            if ((val & 0x0F) == 0x0F) { halfcarry = 1; } else { halfcarry = 0;}
             ticks -= 4;
         }
         else if ((instruction & 0xC7) == 0x05) {
@@ -354,6 +446,9 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             uint8_t mask = carry << 7;
             A = res | mask;
             carry = val & 0b00000001;
+            zero = 0;
+            sub = 0;
+            halfcarry =0;
             ticks -= 4;
 
         }
@@ -629,12 +724,191 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             carry = val > A;
             ticks -= 8;
         }
+        else if (instruction == 0xE9)
+        {
+            //jp hl
+            uint16_t addr = getHL();
+            PC = addr;
+            ticks -= 4;
+        }
         else if (instruction == 0xc3)
         {
             //jp imm16
             uint16_t addr = fetchWord(mem);
             PC = addr;
             ticks -= 16;
+        }
+        else if (instruction == 0xF3)
+        {
+            // di
+            interruptMasterEnable = 0;
+            ticks -= 4;
+        }
+        else if (instruction == 0xea)
+        {
+            // ld [imm16] , a
+            uint16_t addr = fetchWord(mem);
+            mem.data[addr] = A;
+            ticks -= 16;
+        }
+        else if (instruction == 0xfa)
+        {
+            // ld a, [imm16]
+            uint16_t addr = fetchWord(mem);
+            A = mem.readMem(addr);
+            ticks -= 16;
+        }
+        else if (instruction == 0xe0)
+        {
+            // ldh [imm8], a
+            uint8_t lo = fetchByte(mem);
+            uint16_t addr = 0xFF00 | lo;
+            mem.data[addr] = A;
+            ticks -= 12;
+        }
+        else if (instruction == 0xf0)
+        {
+            // ldh a, [imm8]
+            uint8_t lo = fetchByte(mem);
+            uint16_t addr = 0xFF00 | lo;
+            A = mem.readMem(addr);
+            ticks -= 12;
+
+        }
+        else if (instruction == 0xcd)
+        {
+            // call imm16
+            uint16_t dest = fetchWord(mem);
+            SP -= 1;
+            mem.data[SP] = PC >> 8;
+            SP -= 1;
+            mem.data[SP] = PC & 0xFF;
+            PC = dest;
+            ticks -= 24;
+        }
+        else if (instruction == 0xc9)
+        {
+            // ret
+            uint8_t lo = mem.readMem(SP);
+            SP += 1;
+            uint16_t hi = mem.readMem(SP);
+            SP += 1;
+            uint16_t addr = (hi << 8) | lo;
+            PC = addr;
+            ticks -= 16;
+        }
+        else if ((instruction & 0b11100111) == 0xC0)
+        {
+            // ret cond
+            uint8_t condition = (instruction & 0b00011000) >> 3;
+            switch(condition){
+                case 0:
+                    //nz
+                    if (!zero) {
+                        uint8_t lo = mem.readMem(SP);
+                        SP += 1;
+                        uint16_t hi = mem.readMem(SP);
+                        SP += 1;
+                        uint16_t addr = (hi << 8) | lo;
+                        PC = addr;
+                        ticks -= 20;
+                    } else {
+                        ticks -= 8;
+                    }
+                    break;
+                case 1:
+                    //z
+                    if (zero) {
+                        uint8_t lo = mem.readMem(SP);
+                        SP += 1;
+                        uint16_t hi = mem.readMem(SP);
+                        SP += 1;
+                        uint16_t addr = (hi << 8) | lo;
+                        PC = addr;
+                        ticks -= 20;
+                    } else {
+                        ticks -= 8;
+                    }
+                    break;
+                case 2:
+                    //nc
+                    if (!carry) {
+                        uint8_t lo = mem.readMem(SP);
+                        SP += 1;
+                        uint16_t hi = mem.readMem(SP);
+                        SP += 1;
+                        uint16_t addr = (hi << 8) | lo;
+                        PC = addr;
+                        ticks -= 20;
+                    } else {
+                        ticks -= 8;
+                    }
+                    break;
+                case 3:
+                    //c
+                    if (carry) {
+                        uint8_t lo = mem.readMem(SP);
+                        SP += 1;
+                        uint16_t hi = mem.readMem(SP);
+                        SP += 1;
+                        uint16_t addr = (hi << 8) | lo;
+                        PC = addr;
+                        ticks -= 20;
+                    } else {
+                        ticks -= 8;
+                    }
+                    break;
+                default:
+                    std::cout << "invalid condition" << std::endl;
+                    break;
+            }
+
+        }
+        else if ((instruction & 0b11001111) == 0xC5)
+        {
+            // push r16stk
+            uint8_t code = (instruction & 0b00110000) >> 4;
+            uint16_t val = getStackRegFromCode(code);
+            SP -= 1;
+            mem.data[SP] = val >> 8;
+            SP -= 1;
+            mem.data[SP] = val & 0x00FF;
+            ticks -= 16;
+        }
+        else if ((instruction & 0b11000001) == 0xc1)
+        {
+            //pop r16stk
+            uint8_t code = (instruction & 0b00110000) >> 4;
+            uint8_t lo = mem.readMem(SP);
+            SP += 1;
+            uint16_t hi = mem.readMem(SP);
+            SP += 1;
+            uint16_t val = (hi << 8) | lo;
+            setStackRegFromCode(code, val);
+            ticks -= 12;
+        }
+        else if ((instruction & 0b11111000) == 0xB0) {
+            //or a, r8
+            uint8_t code = (instruction & 0b00000111);
+            uint8_t val = getRegFromCode(code, mem);
+            A = A | val;
+            if (A == 0) { zero = 1; } else { zero = 0;}
+            sub = 0;
+            halfcarry = 0;
+            carry = 0;
+            ticks -=4;
+        }
+        else if ((instruction & 0b11111000) == 0xA8)
+        {
+            // xor a, r8
+            uint8_t code = (instruction & 0b00000111);
+            uint8_t val = getRegFromCode(code, mem);
+            A = A ^ val;
+            if (A == 0) { zero = 1; } else { zero = 0;}
+            sub = 0;
+            halfcarry = 0;
+            carry = 0;
+            ticks -=4;
         }
         else {
             std::ostringstream ss;
