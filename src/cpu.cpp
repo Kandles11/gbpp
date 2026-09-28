@@ -555,6 +555,53 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
                     break;
             }
         }
+        else if ((instruction & 0b11100111) == 0xC2)
+        {
+            //jp cond, imm8
+            uint8_t condition = (instruction & 0b00011000) >> 3;
+            uint16_t jumpValue = fetchWord(mem);
+            switch(condition){
+                case 0:
+                    //nz
+                    if (!zero) {
+                        PC = jumpValue;
+                        ticks -= 16;
+                    } else {
+                        ticks -= 12;
+                    }
+                    break;  
+                case 1:
+                    //z
+                    if (zero) {
+                        PC = jumpValue;
+                        ticks -= 16;
+                    } else {
+                        ticks -= 12;
+                    }
+                    break;
+                case 2:
+                    //nc
+                    if (!carry) {
+                        PC = jumpValue;
+                        ticks -= 16;
+                    } else {
+                        ticks -= 12;
+                    }
+                    break;
+                case 3:
+                    //c
+                    if (carry) {
+                        PC = jumpValue;
+                        ticks -= 16;
+                    } else {
+                        ticks -= 12;
+                    }
+                    break;
+                default:
+                    std::cout << "invalid condition" << std::endl;
+                    break;
+            }
+        }
         else if (instruction == 0x10)
         {
             //stop
@@ -818,6 +865,17 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             PC = dest;
             ticks -= 24;
         }
+        else if ((instruction & 0b11000111) == 0xc7){
+            // rst tgt3
+            uint16_t dest = instruction & 0b00111000;
+            SP -= 1;
+            mem.data[SP] = PC >> 8;
+            SP -= 1;
+            mem.data[SP] = PC & 0xFF;
+            PC = dest;
+            ticks -= 16;
+
+        }
         else if (instruction == 0xc9)
         {
             // ret
@@ -829,6 +887,19 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             PC = addr;
             ticks -= 16;
         }
+        else if (instruction == 0xd9)
+        {
+            // reti
+            interruptMasterEnable = 1;
+            uint8_t lo = mem.readMem(SP);
+            SP += 1;
+            uint16_t hi = mem.readMem(SP);
+            SP += 1;
+            uint16_t addr = (hi << 8) | lo;
+            PC = addr;
+            ticks -= 16;
+        }
+        
         else if ((instruction & 0b11100111) == 0xC0)
         {
             // ret cond
