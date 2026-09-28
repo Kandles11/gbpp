@@ -283,21 +283,51 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
         }
         uint8_t instruction = fetchByte(mem);
         if (instruction == 0xCB) {
+            // CB PREFIX
             uint8_t nextInstr = fetchByte(mem);
-            if ((nextInstr & 0b11111000) == 0x38)
+            if ((nextInstr & 0b11111000) == 0x00)
             {
+                //rlc r8
                 uint8_t code = (nextInstr & 0b00000111);
                 uint8_t val = getRegFromCode(code, mem);
-                uint8_t shifted = val >> 1;
-                carry = val & 1;
-                setRegFromCode(code, shifted, mem);
-                if (shifted == 0) { zero = 1;} else {zero = 0;}
+                carry = (val & 0b10000000) >> 7;
+                val = (val << 1) | carry;
+                setRegFromCode(code, val, mem);
+                if (val == 0) { zero = true;} else {zero = false;}
                 sub = 0;
+                halfcarry = 0;
+                ticks -= 8;
+            }
+            else if ((nextInstr & 0b11111000) == 0x08)
+            {
+                //rrc r8
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                carry = (val & 0b00000001);
+                val = (val >> 1) | (carry << 7);
+                setRegFromCode(code, val, mem);
+                if (val == 0) { zero = true;} else {zero = false;}
+                sub = 0;
+                halfcarry = 0;
+                ticks -= 8;
+            } 
+            else if ((nextInstr & 0b11111000) == 0x10)
+            {
+                //rl r8
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                uint8_t res = val << 1;
+                uint8_t mask = carry;
+                setRegFromCode(code, (res|mask), mem);
+                carry = val >> 7;
+                if ((res|mask) == 0) { zero = true;} else {zero = false;}
+                sub =0;
                 halfcarry =0;
                 ticks -= 8;
             }
             else if ((nextInstr & 0b11111000) == 0x18)
             {
+                // RR r8
                 uint8_t code = (nextInstr & 0b00000111);
                 uint8_t val = getRegFromCode(code, mem);
                 uint8_t oldCarry = carry;
@@ -309,6 +339,68 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
                 sub =0 ;    
                 halfcarry =0;
                 ticks -= 8;
+            }
+            else if ((nextInstr & 0b11111000) == 0x20)
+            {
+                //sla r8
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                carry = (val & 0b10000000) >> 7;
+                val = val << 1;
+                setRegFromCode(code, val, mem);
+                if (val == 0) { zero = true;} else {zero = false;}
+                sub =0;
+                halfcarry =0;
+                ticks -= 8;
+            }
+            else if ((nextInstr & 0b11111000) == 0x28)
+            {
+                //sra r8
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                uint8_t front = val & 0b10000000;
+                carry = 0b00000001 & val;
+                val = (val >> 1) | front;
+                setRegFromCode(code, val, mem);
+                if (val == 0) { zero = true;} else {zero = false;}
+                sub =0;
+                halfcarry =0;
+                ticks -= 8;
+            }
+            else if ((nextInstr & 0b11111000) == 0x30)
+            {
+                //swap r8
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                uint8_t hi = (val & 0b11110000) >> 4;
+                uint8_t lo = (val & 0b00001111) << 4;
+                val = hi | lo;
+                setRegFromCode(code, val, mem);
+                if (val == 0) { zero = true;} else {zero = false;}
+                sub = 0;
+                halfcarry = 0;
+                carry =0;
+                ticks -= 8;
+            }
+            else if ((nextInstr & 0b11111000) == 0x38)
+            {
+                //SRL 
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                uint8_t shifted = val >> 1;
+                carry = val & 1;
+                setRegFromCode(code, shifted, mem);
+                if (shifted == 0) { zero = 1;} else {zero = 0;}
+                sub = 0;
+                halfcarry =0;
+                ticks -= 8;
+            }
+
+            else {
+                std::ostringstream ss;
+                ss << "unknown CB instruction given: 0x" << std::hex << std::setw(2)
+                << std::setfill('0') << int(instruction);
+                throw std::runtime_error(ss.str()); 
             }
         }
         else if (instruction == 0x00){
@@ -456,6 +548,9 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             uint8_t mask = (val >> 7);
             A = res | mask;
             carry = val >> 7;
+            zero =0;
+            sub =0;
+            halfcarry =0;
             ticks -= 4;
         }
         else if(instruction == 0x0F)
@@ -466,6 +561,9 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             uint8_t mask = (val << 7);
             A = res | mask;
             carry = val & 0b00000001;
+            zero = 0;
+            sub =0;
+            halfcarry =0;
             ticks -= 4;
         }
         else if (instruction == 0x17) {
@@ -475,6 +573,9 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             uint8_t mask = carry;
             A = res | mask;
             carry = val >> 7;
+            zero = 0;
+            sub =0;
+            halfcarry =0;
             ticks -= 4;
         }
         else if (instruction == 0x1F) {
@@ -492,12 +593,16 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
         }
         else if (instruction == 0x37) {
             // scf
+            sub = 0;
+            halfcarry =0;
             carry = 1;
             ticks -= 4;
         }
         else if (instruction == 0x3F)
         {
             // ccf
+            sub = 0;
+            halfcarry =0;
             carry = !carry;
             ticks -= 4;
         }
@@ -621,7 +726,7 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
         else if ((instruction & 0b11111000) == 0x80)
         {
             //add a, r8
-            uint8_t src_code = (instruction & 0b00000111) >> 3;
+            uint8_t src_code = instruction & 0b00000111;
             uint8_t src_val = getRegFromCode(src_code, mem);
             halfcarry = (A & 0x0F) + (src_val & 0x0F) > 0x0F;
             uint16_t fullVal = A + src_val;
@@ -634,7 +739,7 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
         else if ((instruction & 0b11111000) == 0x88)
         {
             //adc a, r8
-            uint8_t src_code = (instruction & 0b00000111) >> 3;
+            uint8_t src_code = (instruction & 0b00000111);
             uint8_t src_val = getRegFromCode(src_code, mem);
             halfcarry = (A & 0x0F) + (src_val & 0x0F) + carry > 0x0F;
             uint16_t fullVal = A + src_val + carry;
@@ -754,6 +859,31 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             sub = 1;
             ticks -= 8;
         }
+        else if ((instruction & 0b11111000) == 0x90)
+        {
+            //sub a, r8
+            uint8_t code = instruction & 0b00000111;
+            uint8_t val = getRegFromCode(code, mem);
+            halfcarry = (A & 0x0F) < (val & 0x0F);
+            carry = val > A;
+            A = A - val;
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 1;
+            ticks -= 4;
+        }
+        else if ((instruction & 0b11111000) == 0x98)
+        {
+            //sbc a, r8
+            uint8_t code = instruction & 0b00000111;
+            uint8_t val = getRegFromCode(code, mem);
+            bool oldCarry = carry;
+            halfcarry = (A & 0x0F) < (val & 0x0F) + oldCarry;
+            carry = val + oldCarry > A;
+            A = A - (val + oldCarry);
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 1;
+            ticks -= 4;
+        }
         else if (instruction == 0xDE)
         {
             //sbc a, imm8
@@ -765,6 +895,18 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             if (A == 0) { zero = 1;} else { zero = 0;}
             sub = 1;
             ticks -= 8;
+        }
+        else if ((instruction & 0b11111000) == 0xa0)
+        {
+            //and a, r8
+            uint8_t code = instruction & 0b00000111;
+            uint8_t val = getRegFromCode(code, mem);
+            A = A & val;
+            if (A == 0) { zero = 1;} else { zero = 0;}
+            sub = 0;
+            halfcarry = 1;
+            carry = 0;
+            ticks -= 4;
         }
         else if (instruction == 0xE6)
         {
@@ -809,6 +951,18 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             halfcarry = (A & 0x0F) < (val & 0x0F);
             carry = val > A;
             ticks -= 8;
+        }
+        else if ((instruction & 0b11111000) == 0xb8)
+        {
+            //cp a, r8
+            uint8_t code = instruction & 0b00000111;
+            uint8_t val = getRegFromCode(code, mem);
+            uint8_t result = A - val;
+            if (result == 0) { zero = 1;} else { zero = 0;}
+            sub = 1;
+            halfcarry = (A & 0x0F) < (val & 0x0F);
+            carry = val > A;
+            ticks -= 4;
         }
         else if (instruction == 0xE9)
         {
@@ -1012,6 +1166,13 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             halfcarry = 0;
             carry = 0;
             ticks -=4;
+        }
+        else if (instruction == 0x2f) {
+            //cpl
+            A = ~A;
+            sub = 1;
+            halfcarry = 1;
+            ticks -= 4;
         }
 
         else {
