@@ -29,7 +29,7 @@ int main() {
     Memory mem;
     mem.clear();
 
-    std::ifstream GBinary("09-op-r-r.gb", std::ios::binary);
+    std::ifstream GBinary("11-op-a-hl.gb", std::ios::binary);
     if (!GBinary) {
         std::cerr << "Failed to open ROM\n";
         return 1;
@@ -41,7 +41,7 @@ int main() {
 
     std::cout << "starting execution" << std::endl;
     try {
-        cpu.execute(50000000, mem, &logfile,false);
+        cpu.execute(80000000, mem, &logfile,false);
     }
     catch (const std::runtime_error& e) {
         std::cout << std::flush; 

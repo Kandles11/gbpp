@@ -395,6 +395,37 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
                 halfcarry =0;
                 ticks -= 8;
             }
+            else if ((nextInstr & 0b11000000) == 0x40)
+            {
+                //bit b3, r8
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                uint8_t bit = (nextInstr & 0b00111000) >> 3;
+                zero = !(val & (1 << bit));
+                sub = 0;
+                halfcarry = 1;
+                ticks -= 8;
+            }
+            else if ((nextInstr & 0b11000000) == 0x80)
+            {
+                //res b3, r8
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                uint8_t bit = (nextInstr & 0b00111000) >> 3;
+                val = (val & (~(1 << bit)));
+                setRegFromCode(code, val, mem);
+                ticks -= 8;
+            }
+            else if ((nextInstr & 0b11000000) == 0xC0)
+            {
+                //set b3, r8
+                uint8_t code = (nextInstr & 0b00000111);
+                uint8_t val = getRegFromCode(code, mem);
+                uint8_t bit = (nextInstr & 0b00111000) >> 3;
+                val = (val | (1 << bit));
+                setRegFromCode(code, val, mem);
+                ticks -= 8;
+            }
 
             else {
                 std::ostringstream ss;
@@ -1172,6 +1203,27 @@ void CPU::execute(int ticks, Memory &mem, std::ofstream *logfile, bool unlimited
             A = ~A;
             sub = 1;
             halfcarry = 1;
+            ticks -= 4;
+        }
+        else if (instruction == 0x27)
+        {
+            // daa
+            uint8_t val = A;
+            uint8_t adj = 0;
+            if (sub)
+            {
+                if (halfcarry) { adj += 0x06; }
+                if (carry) { adj += 0x60; }
+                val = val - adj;
+            }
+            else {
+                if (halfcarry | ((val & 0x0F) > 0x09)) { adj += 0x06; }
+                if (carry | (val > 0x99)) { adj += 0x60; carry = true;}
+                val = val + adj;
+            }
+            A = val;
+            if (A == 0) { zero = true;} else {zero = false;}
+            halfcarry =0;
             ticks -= 4;
         }
 
